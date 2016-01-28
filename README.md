@@ -4,7 +4,7 @@ All *_matlab.csv is raw data from accelerometer, please paste the file name into
 
 Pocket_step.m works for carrying the phone in the trousers pocket.
 For example, the recorded steps is 321, and the estimated steps is 308
-![alt tag](https://github.com/yh570/sensibility_testbed/blob/master/1_25_19_50_result/figure7.png)
+![alt tag](https://github.com/yh570/sensibility_testbed/blob/master/1_25_20_38_result/figure7.png)
 
 Hold_in_hand.m works for carring the phone in coat pocket or hold in the hand.
 
