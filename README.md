@@ -10,5 +10,5 @@ Hold_in_hand.m works for carring the phone in coat pocket or hold in the hand.
 
 yu_test_v3.r2py works to collect and record the data from accelerometer. The data will be stored in accelerometer_data
 
-yu_test2.r2py works to collect and record the data from BOTH accelerometer and location together. The data will be store in accelerometr_data and location_data.
+yu_test2.r2py works to collect and record the data from BOTH accelerometer and location together with a same clock. The data will be stored in accelerometr_data and location_data.
 
