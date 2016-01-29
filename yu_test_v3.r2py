@@ -10,27 +10,29 @@ port = sensorlib.get_connectionport()
 sensor_socket = sensorlib.getconnection(port)
 
 # define sensor/method/arg in code: 
-sensorlib.request_data(sensor_socket, 'startSensingTimed', [1, 1])
+start_sensing(2, 0)
 
 count = 0
 starttime = getruntime()
-MAX_TIME = 300
+MAX_TIME = 30
 
 resultstring = "Time, x, y, z\n"
 while(getruntime() - starttime < MAX_TIME):
   try:
-    sensor_data = sensorlib.request_data(sensor_socket, 'sensorsReadAccelerometer', []) 
-    log(sensor_data, '\n')
+    sensor_data = get_acceleration()
+    #log(getruntime(), sensor_data, '\n')
 
     resultstring = resultstring + str(getruntime()) + ',' + str(sensor_data[0]) + ',' + str(sensor_data[1]) + ',' + str(sensor_data[2]) + '\n'
 
     count = count + 1
   except Exception as e:
     log(str(e), '\n')
-    sensorlib.request_data(sensor_socket, 'stopSensing', []) 
+    stop_sensing()
     sensor_socket.close()
     #raise
 
+stop_sensing()
+sensor_socket.close()
 
 myfilelist = listfiles()
 filename = "accelerometer_data"
@@ -43,5 +45,3 @@ myfileobject.close()
 
 duration = (getruntime() - starttime) / count
 log(str(duration))
-sensorlib.request_data(sensor_socket, 'stopSensing', [])
-sensor_socket.close()
