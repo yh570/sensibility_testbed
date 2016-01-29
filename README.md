@@ -1,5 +1,10 @@
 # sensibility_testbed
 
+--Update 1/29--
+yu_test_v3.r2py: replace reqeust with get_accelerometer, delete log in while loop
+Hold_in_hand.m: add crossing zero method(with trick, only determine the signal above std(figuredMagNoG)), using butterworth filter to replace pre-emphasis filter(tried moving average, Binomial)
+
+
 All *_matlab.csv is raw data from accelerometer, please paste the file name into the .m file to execute. All results and output figures are saved in each folder. The *_result.csv includes raw data and recorded steps data, and also saved the carrying method(hold in hand or keep in trousers pocket)
 
 Pocket_step.m works for carrying the phone in the trousers pocket.
