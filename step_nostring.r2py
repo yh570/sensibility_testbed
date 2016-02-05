@@ -1,0 +1,175 @@
+"""
+Modified from Prof. Zhuang's acclerometer.r2py and location_wifi.r2py
+By Yu
+"""
+
+sensorlib = dy_import_module("sensorlib.r2py")
+
+# get a connection to communicate with sensors
+port = sensorlib.get_connectionport()
+sensor_socket = sensorlib.getconnection(port)
+
+# define sensor/method/arg in code: 
+start_sensing(2, 0)
+
+MAX_TIME = 120                        # Max program running time
+STEP_INTERVAL = 0.25                  # Minimum time difference between each step
+PRE_LEARN_SAMPLES = 100               # Pre calibration sample number
+
+pre_flag = 0                          # The flag for preset threshold value
+
+mag_threshold = 100.0                 # Dynamic threshold later, preset to avoid step counter about 1 second
+lastMagNoG = 0.00                     # The last recorded magnitutde
+
+max_noise_level = 0.00                # Preset the threshold for first 5 steps
+noise = []                            # Pre calibration noise
+
+sum_mag = 0.00                        # For average calculation
+sum_variance = 0.0                    # For vriance calculation
+pre_sum_variance = 0.00               # For standard deviation calulation
+filtered_magNoG = 0.0                 # Magnititude after filtering
+
+moving_average_sample = 4             # Dynamic sampling rate later, sample number for moving average filter
+
+gravity_constant = 9.81               # Preset for a while, will be changed after pre calibration stage
+sum_gravity = 0.0                     # For gravity constant calculation
+
+count = 0                             # Total count
+# interval_step_count = 0               # Count for each step
+step_count = 0                        # Walking step count
+#mag = []
+
+movingAverage = []                    # Window for moving average filter
+last_step_time = 0.00                 # Time point for last walking step
+
+starttime = getruntime()
+current_time = starttime
+
+while(getruntime() - starttime < MAX_TIME):
+  try:
+    sensor_data = get_acceleration()
+    last_time = current_time
+    current_time = getruntime()
+    
+    x1 = str(sensor_data[0])
+    y1 = str(sensor_data[1])
+    z1 = str(sensor_data[2])
+
+    if (x1 != 'None' and y1 != 'None' and z1 != 'None'):  # In few seconds begining, sensibility testbed may output 'None'
+
+      x = float(x1)
+      y = float(y1)
+      z = float(z1)
+
+      count = count + 1
+
+      #-------------------------------------------------------Non-gravity acceleration magnitude
+
+      magNoG = (x**2 + y**2 + z**2)**0.5 - gravity_constant
+
+      #------------------------------------------------------Gravity constant and sampling rate pre calibration stage
+
+      if count > 0 and count < PRE_LEARN_SAMPLES:
+        sum_gravity = sum_gravity + (x**2 + y**2 + z**2)**0.5
+        if count == 1:
+          begin_count_time = getruntime()
+          max_noise_level = magNoG
+        else:
+          if max_noise_level < magNoG:
+            max_noise_level = magNoG 
+      elif count == PRE_LEARN_SAMPLES:
+        gravity_constant = sum_gravity/(PRE_LEARN_SAMPLES-1)
+        moving_average_sample = int(0.125/((getruntime() - begin_count_time)/(PRE_LEARN_SAMPLES)))
+        if moving_average_sample < 4:
+          moving_average_sample = 4
+        if max_noise_level - average_mag > std_mag * 8 and max_noise_level - average_mag < std_mag * 16:
+          mag_threshold =  (max_noise_level - average_mag)*2
+        else:
+          mag_threshold = std_mag * 16
+        log('--------' + str(mag_threshold) + ',' + str(std_mag) + '\n')
+        log(moving_average_sample, gravity_constant)
+    
+      #-------------------------------------------------------Moving Average Filter
+
+      if current_time - last_time > 0.125:
+        movingAverage = []
+      if len(movingAverage) < moving_average_sample:
+        movingAverage.append(magNoG)
+        filtered_magNoG = 0.0
+        for i in range(0,len(movingAverage)):
+          filtered_magNoG = filtered_magNoG + movingAverage[i]
+        filtered_magNoG = filtered_magNoG/len(movingAverage)
+        
+      elif len(movingAverage) == moving_average_sample:
+        filtered_magNoG = 0.0
+        for i in range(0,moving_average_sample-1):
+          movingAverage[i] = movingAverage[i+1]
+          filtered_magNoG = filtered_magNoG + movingAverage[i]
+        movingAverage[moving_average_sample-1] = magNoG
+        filtered_magNoG = filtered_magNoG + magNoG
+        filtered_magNoG = filtered_magNoG/moving_average_sample
+
+      #mag.append(filtered_magNoG)
+
+      
+      #-------------------------------------------------------Variance and average calculation
+
+      sum_mag = sum_mag + filtered_magNoG
+      
+      average_mag = sum_mag/count
+
+      sum_variance = sum_variance + (filtered_magNoG-average_mag)**2
+      variance_mag = sum_variance/count
+
+      std_mag = variance_mag**0.5
+
+
+      #-------------------------------------------------------Threshold pre calibration
+
+      if step_count > 0 and step_count < 6:
+        pre_sum_variance = pre_sum_variance + (filtered_magNoG-average_mag)**2
+
+      elif step_count == 6 and pre_flag == 0:
+        pre_std = pre_sum_variance / (count - 1 - pre_learned_sample)
+        #mag_threshold = pre_std ** 0.5 * 0.8
+        pre_flag = 1
+      
+
+      #-------------------------------------------------------Walking step detection
+
+      if (count > 0) and (current_time - last_step_time > STEP_INTERVAL):
+        if (lastMagNoG <= mag_threshold) and (filtered_magNoG > mag_threshold):
+          step_count = step_count + 1
+
+          #-------------------------------------------------------Sampling rate per step pre calibration
+
+          if step_count == 1:
+            pre_learned_sample = count
+#          elif step_count == 6:
+#            moving_average_sample = (count - pre_learned_sample)/20  #/5 then /4 for running
+
+          #-------------------------------------------------------
+
+          time_interval = current_time - last_step_time
+          f = 1/time_interval
+          last_step_time = current_time
+          
+ #         if step_count > 5:
+  #          mag_threshold = std_mag
+         
+          log(str(current_time) + ',' + str(step_count) + '\n')
+      
+      lastMagNoG = filtered_magNoG
+
+
+  except Exception as e:
+    log(str(e), '\n')
+    stop_sensing()
+    sensor_socket.close()
+    #raise
+
+stop_sensing()
+sensor_socket.close()
+
+duration = (getruntime() - starttime) / count
+log(str(duration), step_count)
