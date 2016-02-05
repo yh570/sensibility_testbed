@@ -14,33 +14,34 @@ start_sensing(2, 0)
 
 MAX_TIME = 120                        # Max program running time
 STEP_INTERVAL = 0.25                  # Minimum time difference between each step
+PRE_LEARN_SAMPLES = 100               # Pre calibration sample number
 
 pre_flag = 0                          # The flag for preset threshold value
 
 mag_threshold = 100.0                 # Dynamic threshold later, preset to avoid step counter about 1 second
+lastMagNoG = 0.00                     # The last recorded magnitutde
+
+max_noise_level = 0.00                # Preset the threshold for first 5 steps
+noise = []                            # Pre calibration noise
+
+sum_mag = 0.00                        # For average calculation
+sum_variance = 0.0                    # For vriance calculation
+pre_sum_variance = 0.00               # For standard deviation calulation
+filtered_magNoG = 0.0                 # Magnititude after filtering
+
 moving_average_sample = 4             # Dynamic sampling rate later, sample number for moving average filter
 
 gravity_constant = 9.81               # Preset for a while, will be changed after pre calibration stage
-
-max_noise_level = 0.00                # Preset the threshold for first 5 steps
-
-count = 0                             # Total count
-interval_step_count = 0               # Count for each step
-step_count = 0                        # Walking step count
-
-lastMagNoG = 0.00                     # The last recorded magnitutde
-#mag = []
-
-pre_sum_variance = 0.00               # For standard deviation calulation
-
-filtered_magNoG = 0.0                 # Magnititude after filtering
-movingAverage = []                    # Window for moving average filter
-last_step_time = 0.00                 # Time point for last walking step
-sum_mag = 0.00                        # For average calculation
-sum_variance = 0.0                    # For vriance calculation
 sum_gravity = 0.0                     # For gravity constant calculation
 
-noise = []                            # Pre calibration noise
+count = 0                             # Total count
+# interval_step_count = 0               # Count for each step
+step_count = 0                        # Walking step count
+#mag = []
+
+movingAverage = []                    # Window for moving average filter
+last_step_time = 0.00                 # Time point for last walking step
+
 
 resultstring = "Time, x, y, z\n"
 stepString = "Time, step_count, frequency, a_variance\n"
@@ -69,57 +70,40 @@ while(getruntime() - starttime < MAX_TIME):
 
       count = count + 1
 
-      #------------------------------------------------------Gravity constant and sampling rate pre calibration stage
 
-      if count > 0 and count < 100:
-        sum_gravity = sum_gravity + (x**2 + y**2 + z**2)**0.5
-        if count == 1:
-          begin_count_time = getruntime()
-      elif count == 100:
-        gravity_constant = sum_gravity/99
-        moving_average_sample = int(0.125/((getruntime() - begin_count_time)/99))
-        if moving_average_sample < 4:
-          moving_average_sample = 4
-
- #    elif count == 200:
- #      mag_threshold = std_mag * 2 + average_mag
-        
-        log(moving_average_sample, gravity_constant)
-
-      #-----------------------------------------------------
-
-      #-----------------------------------------------------Find out the maximum noise level, set it as threshold value for pre calibration stage
+      #-------------------------------------------------------Non-gravity acceleration magnitude
 
       magNoG = (x**2 + y**2 + z**2)**0.5 - gravity_constant
       rawString = rawString + str(current_time) + ',' + str(magNoG) + '\n'
 
-      if count > 100 and count < 200:
-        if magNoG > max_noise_level:
+      #------------------------------------------------------Gravity constant and sampling rate pre calibration stage
+
+      if count > 0 and count < PRE_LEARN_SAMPLES:
+        sum_gravity = sum_gravity + (x**2 + y**2 + z**2)**0.5
+        if count == 1:
+          begin_count_time = getruntime()
           max_noise_level = magNoG
-          noise.append(magNoG)
-      elif count == 200:
-        sum_noise = 0.0
-        sum_noise_variance = 0.0
-        length_noise = len(noise)
-        for i in range (0, length_noise):
-          sum_noise = sum_noise + noise[i]
-        average_noise = sum_noise / length_noise 
-        for i in range (0, length_noise ):
-          sum_noise_variance = sum_noise_variance + (noise[i]-average_noise)**2/length_noise
-        std_noise = sum_noise_variance ** 0.5
-
-
-        if max_noise_level > std_noise * 8:  #for random noise, pk-pk = 6~8 * std, ref: http://www.dspguide.com/ch2/2.htm
-          mag_threshold = std_mag * 16
         else:
-          mag_threshold = max_noise_level * 2
+          if max_noise_level < magNoG:
+            max_noise_level = magNoG 
+      elif count == PRE_LEARN_SAMPLES:
+        gravity_constant = sum_gravity/(PRE_LEARN_SAMPLES-1)
+        moving_average_sample = int(0.125/((getruntime() - begin_count_time)/99))
+        if moving_average_sample < 4:
+          moving_average_sample = 4
+        if max_noise_level - average_mag > std_mag * 8 and max_noise_level - average_mag < std_mag * 16:
+          mag_threshold =  (max_noise_level - average_mag)*2
+        else:
+          mag_threshold = std_mag * 16
         log('--------' + str(mag_threshold) + ',' + str(std_mag) + '\n')
+        log(moving_average_sample, gravity_constant)
 
-      #------------------------------------------------------
 
+
+    
       #-------------------------------------------------------Moving Average Filter
 
-      if current_time - last_time > 0.25:
+      if current_time - last_time > 0.125:
         movingAverage = []
       if len(movingAverage) < moving_average_sample:
         movingAverage.append(magNoG)
@@ -140,7 +124,6 @@ while(getruntime() - starttime < MAX_TIME):
       #mag.append(filtered_magNoG)
       filteredString = filteredString + str(current_time) + ',' + str(filtered_magNoG) + '\n'
 
-      #-------------------------------------------------------
       
       #-------------------------------------------------------Variance and average calculation
 
@@ -153,7 +136,6 @@ while(getruntime() - starttime < MAX_TIME):
 
       std_mag = variance_mag**0.5
 
-      #-------------------------------------------------------
 
       #-------------------------------------------------------Threshold pre calibration
 
@@ -165,7 +147,6 @@ while(getruntime() - starttime < MAX_TIME):
         #mag_threshold = pre_std ** 0.5 * 0.8
         pre_flag = 1
       
-      #-------------------------------------------------------
 
       #-------------------------------------------------------Walking step detection
 
