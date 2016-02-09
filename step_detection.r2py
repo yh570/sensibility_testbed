@@ -41,3 +41,6 @@ class step_detection:
 
 	def _get_step_count(self):
 		return self.count
+
+
+# -*- mode: python;-*-

@@ -49,3 +49,6 @@ class moving_average_filter:
 		self._update(current_time)
 
 		return filtered_magNoG
+
+
+# -*- mode: python;-*-

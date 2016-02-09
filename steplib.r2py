@@ -21,3 +21,6 @@ def log_coefficient(gravity_constant, moving_rate, threshold):
 			"\nMoving Average Filter Window Sampling Number:", moving_rate, 
 			"\nThreshold:", threshold, '\n')
 	log("Please walk around\n")
+
+
+# -*- mode: python;-*-

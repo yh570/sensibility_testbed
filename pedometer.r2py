@@ -42,7 +42,7 @@ def pre_learned(sensor_raw_data):
 		################################### CRITICAL REGION #######################################
 
 		pre._update(mag_acceleration(sensor_raw_data))
-		
+
 		################################# ENDOF CRITICAL REGION ###################################
 		lock.release()
 	return func
@@ -69,41 +69,55 @@ def step_counter(sensor_raw_data, gravity_constant, current_time):
 
 # main
 while(getruntime() - start_time < MAX_TIME):
-	current_time = getruntime()
-	sensor_raw_data = get_sensors()
+	try:
+		current_time = getruntime()
+		sensor_raw_data = get_sensors()
 
-	# Before effecitve data collection, accelerometer return "None"
-	# Continue except effective data collection
-	if len(sensor_raw_data) == 0:
-		continue
+		# Before effecitve data collection, accelerometer return "None"
+		# Continue except effective data collection
+		if len(sensor_raw_data) == 0:
+			continue
 
-	count += 1
+		count += 1
 
-	# Pre-calibration stage initilization and data collection
-	if count > 0 and count < PRE_LEARN_SAMPLE_NUMBER:
-		if count == 1:
-			pre = pre_calibration(current_time)	
-		createthread(pre_learned(sensor_raw_data))
-
-
-
-	# Get estimated coefficient at the end of pre-calibration stage
-	elif count == PRE_LEARN_SAMPLE_NUMBER:
-		gravity_constant = pre._get_gravity()
-		moving_rate = pre._get_moving_rate(current_time)
-		threshold = pre._get_threshold()
-
-		# Initialize moving average filter and step detection
-		filter = moving_average_filter(moving_rate, current_time)
-		step = step_detection(threshold, current_time, MIN_STEP_INTERVAL)
-		log_coefficient(gravity_constant, moving_rate, threshold)
+		# Pre-calibration stage initilization and data collection
+		if count > 0 and count < PRE_LEARN_SAMPLE_NUMBER:
+			if count == 1:
+				pre = pre_calibration(current_time)	
+			createthread(pre_learned(sensor_raw_data))
 
 
-	# Startup step counter
-	else:
+
+		# Get estimated coefficient at the end of pre-calibration stage
+		elif count == PRE_LEARN_SAMPLE_NUMBER:
+			gravity_constant = pre._get_gravity()
+			moving_rate = pre._get_moving_rate(current_time)
+			threshold = pre._get_threshold()
+
+			# Initialize moving average filter and step detection
+			filter = moving_average_filter(moving_rate, current_time)
+			step = step_detection(threshold, current_time, MIN_STEP_INTERVAL)
+			log_coefficient(gravity_constant, moving_rate, threshold)
+			break
+	except Exception as e:
+	    log(str(e), '\n')
+	    stop_sensing()
+    
+
+while(getruntime() - start_time < MAX_TIME):
+	try:
+		current_time = getruntime()
+		sensor_raw_data = get_sensors()
+		count += 1
+		# Startup step counter
 		createthread(step_counter(sensor_raw_data, gravity_constant, current_time))
+	except Exception as e:
+	    log(str(e), '\n')
+	    stop_sensing()
 
 
 
 
 stop_sensing()
+
+# -*- mode: python;-*-
