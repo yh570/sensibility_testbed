@@ -20,9 +20,8 @@ class pre_calibration:
 
 
 	def _update(self, data):
-		def _func():
-			self.mag_list.append(data)
-		return _func
+		self.mag_list.append(data)
+		
 
 
 	# gravity constant estimated by mean of acceleration

@@ -35,6 +35,39 @@ log("Welcome to pedometer!\nSystem pre calibration, please wait a while\n")
 start_time = getruntime()
 
 
+# pre-calibration stage
+def pre_learned(sensor_raw_data):
+	def func():
+		lock.acquire(True)
+		################################### CRITICAL REGION #######################################
+
+		pre._update(mag_acceleration(sensor_raw_data))
+		
+		################################# ENDOF CRITICAL REGION ###################################
+		lock.release()
+	return func
+
+
+def step_counter(sensor_raw_data, gravity_constant, current_time):
+	def func():
+		lock.acquire(True)
+		################################### CRITICAL REGION #######################################
+
+		# Non-gravity acceleration
+		sensor_data_noG = mag_acceleration(sensor_raw_data) - gravity_constant
+
+		# moving average filter
+		filtered_magNoG = filter.filter_mag(sensor_data_noG, current_time)
+
+		# step detection
+		step._step_counter(filtered_magNoG, current_time)
+
+		################################# ENDOF CRITICAL REGION ###################################
+		lock.release()
+	return func
+
+
+# main
 while(getruntime() - start_time < MAX_TIME):
 	current_time = getruntime()
 	sensor_raw_data = get_sensors()
@@ -50,9 +83,7 @@ while(getruntime() - start_time < MAX_TIME):
 	if count > 0 and count < PRE_LEARN_SAMPLE_NUMBER:
 		if count == 1:
 			pre = pre_calibration(current_time)	
-		lock.acquire(True)
-		createthread(pre._update(mag_acceleration(sensor_raw_data)))
-		lock.release()
+		createthread(pre_learned(sensor_raw_data))
 
 
 
@@ -70,16 +101,9 @@ while(getruntime() - start_time < MAX_TIME):
 
 	# Startup step counter
 	else:
-		# Non-gravity acceleration
-		sensor_data_noG = mag_acceleration(sensor_raw_data) - gravity_constant
+		createthread(step_counter(sensor_raw_data, gravity_constant, current_time))
 
-		# moving average filter
-		filtered_magNoG = filter.filter_mag(sensor_data_noG, current_time)
 
-		# step detection
-		lock.acquire(True)
-		createthread(step._step_counter(filtered_magNoG, current_time))
-		lock.release()
 
 
 stop_sensing()

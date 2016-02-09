@@ -9,11 +9,12 @@
 
 
 
-
+# get acceleration data from sensor
 def mag_acceleration(data):
 	return (data['xforce'] ** 2 + data['yforce'] ** 2 + data['zforce'] ** 2) ** 0.5
 
 
+# log coefficient after pre-calibration stage
 def log_coefficient(gravity_constant, moving_rate, threshold):
 	log("Pre calibration done!\n")
 	log("Grvaity Constant:", gravity_constant, 

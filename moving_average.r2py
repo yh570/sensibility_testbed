@@ -18,14 +18,20 @@ class moving_average_filter:
 		self.sample = moving_average_sample
 		self.last_time = current_time
 
+
 	def _update(self, current_time):
 		self.last_time = current_time
 
+
+	# moving average filter smooth the curve
 	def filter_mag(self, data, current_time):
+		# avoid device lag
+		# different sampling time interval will reduce the filter's accuracy
 		if current_time - self.last_time > 0.125:
 			self.mag_list = []
 		length = len(self.mag_list)
 		filtered_magNoG = 0.0
+
 		if length < self.sample:
 			self.mag_list.append(data)
 			length += 1
