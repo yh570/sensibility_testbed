@@ -15,21 +15,20 @@
 
 
 sensorlib = dy_import_module("sensorlib.r2py")
-dy_import_module_symbols('pre_calibration.r2py')
 dy_import_module_symbols('getsensor.r2py')
+dy_import_module_symbols('pre_calibration.r2py')
 dy_import_module_symbols('moving_average.r2py')
 dy_import_module_symbols('step_detection.r2py')
 dy_import_module_symbols('steplib.r2py')
 
 
 # Initilization for pre-calibration and constants
-count = 0
-MAX_TIME = 200                        # Max program running time in seconds
-STEP_INTERVAL = 0.25                  # Minimum time difference between each step in senconds
-pre = pre_calibration()	
-PRE_LEARN_SAMPLES = 100
+PRE_LEARN_SAMPLE_NUMBER = 100
+MAX_TIME = 60		                      # Max program running time in seconds
+MIN_STEP_INTERVAL = 0.25                  # Minimum time difference between each step in senconds
 lock = createlock()
 
+count = 0
 
 start_sensing(2, 0)
 log("Welcome to pedometer!\nSystem pre calibration, please wait a while\n")
@@ -37,48 +36,50 @@ start_time = getruntime()
 
 
 while(getruntime() - start_time < MAX_TIME):
-	lock.acquire(True)
 	current_time = getruntime()
 	sensor_raw_data = get_sensors()
 
-
 	# Before effecitve data collection, accelerometer return "None"
+	# Continue except effective data collection
 	if len(sensor_raw_data) == 0:
 		continue
 
 	count += 1
 
-	# Pre-calibration stage data collection
-	if count > 0 and count < PRE_LEARN_SAMPLES:
+	# Pre-calibration stage initilization and data collection
+	if count > 0 and count < PRE_LEARN_SAMPLE_NUMBER:
 		if count == 1:
-			pre.get_start_time(current_time)
-		pre.update(mag_acceleration(sensor_raw_data))
+			pre = pre_calibration(current_time)	
+		lock.acquire(True)
+		createthread(pre._update(mag_acceleration(sensor_raw_data)))
+		lock.release()
 
 
-	# Pre-calibration stage preset the coefficients after data collection
-	elif count == PRE_LEARN_SAMPLES:
-		gravity_constant = pre.get_gravity()
-		moving_rate = pre.get_moving_rate(current_time)
-		threshold = pre.get_threshold()
 
+	# Get estimated coefficient at the end of pre-calibration stage
+	elif count == PRE_LEARN_SAMPLE_NUMBER:
+		gravity_constant = pre._get_gravity()
+		moving_rate = pre._get_moving_rate(current_time)
+		threshold = pre._get_threshold()
 
 		# Initialize moving average filter and step detection
 		filter = moving_average_filter(moving_rate, current_time)
-		step = step_detection(threshold, current_time, STEP_INTERVAL)
+		step = step_detection(threshold, current_time, MIN_STEP_INTERVAL)
 		log_coefficient(gravity_constant, moving_rate, threshold)
 
 
-	# Startup step counter after pre-calibration
+	# Startup step counter
 	else:
-		sensor_data = mag_acceleration(sensor_raw_data) - gravity_constant
-
+		# Non-gravity acceleration
+		sensor_data_noG = mag_acceleration(sensor_raw_data) - gravity_constant
 
 		# moving average filter
-		filtered_magNoG = filter.filter_mag(sensor_data, current_time)
-
+		filtered_magNoG = filter.filter_mag(sensor_data_noG, current_time)
 
 		# step detection
-		step.step_counter(filtered_magNoG, current_time)
-	lock.release()
+		lock.acquire(True)
+		createthread(step._step_counter(filtered_magNoG, current_time))
+		lock.release()
+
 
 stop_sensing()

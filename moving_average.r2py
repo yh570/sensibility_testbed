@@ -18,7 +18,7 @@ class moving_average_filter:
 		self.sample = moving_average_sample
 		self.last_time = current_time
 
-	def update(self, current_time):
+	def _update(self, current_time):
 		self.last_time = current_time
 
 	def filter_mag(self, data, current_time):
@@ -40,6 +40,6 @@ class moving_average_filter:
 				self.mag_list[length-1] = data
 				filtered_magNoG = filtered_magNoG + data
 				filtered_magNoG = filtered_magNoG/length
-		self.update(current_time)
+		self._update(current_time)
 
 		return filtered_magNoG

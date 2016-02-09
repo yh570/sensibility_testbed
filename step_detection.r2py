@@ -21,18 +21,20 @@ class step_detection:
 		self.last_step_time = time
 		self.step_interval = step_interval
 
-	def update(self, data):
+	def _update(self, data):
 		self.lastmag = data
 	
-	def updatetime(self, time):
+	def _updatetime(self, time):
 		self.last_step_time = time
 
-	def step_counter(self, data, current_time):
-		if self.lastmag <= self.threshold and data > self.threshold and current_time - self.last_step_time > self.step_interval:
-			self.count += 1
-			self.updatetime(current_time)
-			log("Time:", current_time, "Step count:", self.count, '\n')
-		self.update(data)
+	def _step_counter(self, data, current_time):
+		def _func():
+			if self.lastmag <= self.threshold and data > self.threshold and current_time - self.last_step_time > self.step_interval:
+				self.count += 1
+				self._updatetime(current_time)
+				log("Time:", current_time, "Step count:", self.count, '\n')
+			self._update(data)
+		return _func
 
-	def get_step_count(self):
+	def _get_step_count(self):
 		return self.count
