@@ -2,7 +2,7 @@
 # pedometer
 
 --Update 2/8/2016--
-Seperate the step_counter.r2py into pedometer.r2py, pre_calibration.r2py, step_detection.r2py and moving_average.r2py. Preparing for threading.
+Seperate the step_counter.r2py into pedometer.r2py, pre_calibration.r2py, step_detection.r2py, steplib.r2py and moving_average.r2py. Preparing for threading.
 
 
 Finished work: Pedometer
