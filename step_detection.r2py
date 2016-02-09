@@ -1,5 +1,17 @@
+"""
+<Program Name>
+  step_detection.r2py
 
-# step detection
+<Purpose>
+  This is a script for walking step counter function. Analysis of the data 
+  from filtered non gravity acceleration to detect the walking / running steps 
+  by using zero-cross method. Introducing an preset walking / running interval
+  to accurate the detection
+"""
+
+
+
+
 
 class step_detection:
 	def __init__(self, threshold, time, step_interval):
@@ -19,7 +31,7 @@ class step_detection:
 		if self.lastmag <= self.threshold and data > self.threshold and current_time - self.last_step_time > self.step_interval:
 			self.count += 1
 			self.updatetime(current_time)
-			log(current_time, self.count, '\n')
+			log("Time:", current_time, "Step count:", self.count, '\n')
 		self.update(data)
 
 	def get_step_count(self):

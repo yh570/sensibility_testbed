@@ -1,51 +1,84 @@
+"""
+<Program Name>
+  pedometer.r2py
+
+<Purpose>
+  This is a script for walking step counter. Analysis of the sensor data 
+  from accelerometer to detect the walking / running steps. Introducing
+  pre-calibration stage, noise level threshold and moving average filter
+  to accurate step detection for difference devices.
+
+  *Note: the device must be stable for 1 second pre-calibration from beginning
+"""
+
+
+
+
 sensorlib = dy_import_module("sensorlib.r2py")
 dy_import_module_symbols('pre_calibration.r2py')
 dy_import_module_symbols('getsensor.r2py')
 dy_import_module_symbols('moving_average.r2py')
 dy_import_module_symbols('step_detection.r2py')
+dy_import_module_symbols('steplib.r2py')
 
+
+# Initilization for pre-calibration and constants
 count = 0
 MAX_TIME = 200                        # Max program running time in seconds
 STEP_INTERVAL = 0.25                  # Minimum time difference between each step in senconds
-pre = pre_calibration()
+pre = pre_calibration()	
 PRE_LEARN_SAMPLES = 100
-
-
+lock = createlock()
 
 
 start_sensing(2, 0)
+log("Welcome to pedometer!\nSystem pre calibration, please wait a while\n")
 start_time = getruntime()
 
 
 while(getruntime() - start_time < MAX_TIME):
-	# pre calibration stage
+	lock.acquire(True)
 	current_time = getruntime()
 	sensor_raw_data = get_sensors()
+
+
+	# Before effecitve data collection, accelerometer return "None"
 	if len(sensor_raw_data) == 0:
 		continue
+
 	count += 1
+
+	# Pre-calibration stage data collection
 	if count > 0 and count < PRE_LEARN_SAMPLES:
 		if count == 1:
 			pre.get_start_time(current_time)
 		pre.update(mag_acceleration(sensor_raw_data))
+
+
+	# Pre-calibration stage preset the coefficients
 	elif count == PRE_LEARN_SAMPLES:
 		gravity_constant = pre.get_gravity()
 		moving_rate = pre.get_moving_rate(current_time)
 		threshold = pre.get_threshold()
+
+
+		# Initialize moving average filter and step detection
 		filter = moving_average_filter(moving_rate, current_time)
 		step = step_detection(threshold, current_time, STEP_INTERVAL)
+		log_coefficient(gravity_constant, moving_rate, threshold)
 
-		log(gravity_constant, moving_rate, threshold, '\n')
 
-
-	# raw data go through moving average filter
+	# Startup step counter after pre-calibration
 	else:
 		sensor_data = mag_acceleration(sensor_raw_data) - gravity_constant
+
+
 		# moving average filter
 		filtered_magNoG = filter.filter_mag(sensor_data, current_time)
 
+
 		# step detection
 		step.step_counter(filtered_magNoG, current_time)
-		# log (current_time, step.get_step_count())
+	lock.release()
 
 stop_sensing()

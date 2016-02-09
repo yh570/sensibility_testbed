@@ -1,13 +1,17 @@
-def mag_acceleration(data):
-	return (data['xforce'] ** 2 + data['yforce'] ** 2 + data['zforce'] ** 2) ** 0.5
+"""
+<Program Name>
+  pre_calibration.r2py
+
+<Purpose>
+  This is a script for pre calibration stage for better step estimation
+  with different device. To get gravity constant, sampling rate and noise
+  level from first 100 samples. 
+"""
 
 
 
 
-# pre calibration stage
-# to get sampling rate,
-# sample rate for moving average filter
-# and threshold assumption
+
 class pre_calibration:
 	def __init__(self):
 		self.mag_list = []
