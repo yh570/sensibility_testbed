@@ -1,0 +1,51 @@
+sensorlib = dy_import_module("sensorlib.r2py")
+dy_import_module_symbols('pre_calibration.r2py')
+dy_import_module_symbols('getsensor.r2py')
+dy_import_module_symbols('moving_average.r2py')
+dy_import_module_symbols('step_detection.r2py')
+
+count = 0
+MAX_TIME = 200                        # Max program running time in seconds
+STEP_INTERVAL = 0.25                  # Minimum time difference between each step in senconds
+pre = pre_calibration()
+PRE_LEARN_SAMPLES = 100
+
+
+
+
+start_sensing(2, 0)
+start_time = getruntime()
+
+
+while(getruntime() - start_time < MAX_TIME):
+	# pre calibration stage
+	current_time = getruntime()
+	sensor_raw_data = get_sensors()
+	if len(sensor_raw_data) == 0:
+		continue
+	count += 1
+	if count > 0 and count < PRE_LEARN_SAMPLES:
+		if count == 1:
+			pre.get_start_time(current_time)
+		pre.update(mag_acceleration(sensor_raw_data))
+	elif count == PRE_LEARN_SAMPLES:
+		gravity_constant = pre.get_gravity()
+		moving_rate = pre.get_moving_rate(current_time)
+		threshold = pre.get_threshold()
+		filter = moving_average_filter(moving_rate, current_time)
+		step = step_detection(threshold, current_time, STEP_INTERVAL)
+
+		log(gravity_constant, moving_rate, threshold, '\n')
+
+
+	# raw data go through moving average filter
+	else:
+		sensor_data = mag_acceleration(sensor_raw_data) - gravity_constant
+		# moving average filter
+		filtered_magNoG = filter.filter_mag(sensor_data, current_time)
+
+		# step detection
+		step.step_counter(filtered_magNoG, current_time)
+		# log (current_time, step.get_step_count())
+
+stop_sensing()
