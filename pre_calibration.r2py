@@ -1,0 +1,67 @@
+def mag_acceleration(data):
+	return (data['xforce'] ** 2 + data['yforce'] ** 2 + data['zforce'] ** 2) ** 0.5
+
+
+
+
+# pre calibration stage
+# to get sampling rate,
+# sample rate for moving average filter
+# and threshold assumption
+class pre_calibration:
+	def __init__(self):
+		self.mag_list = []
+		self.start_time = 0.0
+		self.average = 0.0
+
+
+	def update(self, data):
+		self.mag_list.append(data)
+
+
+	def get_gravity(self):
+		sum_mag = 0
+		length = len(self.mag_list)
+		for i in range(0, length):
+			sum_mag += self.mag_list[i]
+		self.average = sum_mag/length
+		return self.average
+
+
+	def get_start_time(self, time):
+		self.start_time = time
+
+
+	def get_moving_rate(self, time):
+		moving_average_sample = int(0.125/((time - self.start_time)/len(self.mag_list)))
+		if moving_average_sample < 4:
+			moving_average_sample = 4
+		return moving_average_sample 
+
+
+	# threshold estimation by noise level
+	# based on max noise level and standard deviation of noise
+	# to avoid some huge noise pulse
+	# using standard deviation * 8 to control
+	def get_threshold(self):
+		sum_variance = 0.0
+		max_noise = self.mag_list[0]
+		length = len(self.mag_list)
+		for i in range(1, length):
+			if max_noise < self.mag_list[i]:
+				max_noise = self.mag_list[i]
+			sum_variance = sum_variance + (self.mag_list[i]-self.average)**2
+		max_noise = max_noise - self.average
+		variance_mag = sum_variance/length
+		std_mag = variance_mag**0.5
+		if max_noise > std_mag * 8 and max_noise < std_mag * 16:
+			threshold = (max_noise) * 2
+		else:
+			threshold = std_mag * 16
+		return threshold
+
+
+
+
+
+
