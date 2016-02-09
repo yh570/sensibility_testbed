@@ -1,0 +1,26 @@
+
+# step detection
+
+class step_detection:
+	def __init__(self, threshold, time, step_interval):
+		self.lastmag = 0.0
+		self.threshold = threshold
+		self.count = 0
+		self.last_step_time = time
+		self.step_interval = step_interval
+
+	def update(self, data):
+		self.lastmag = data
+	
+	def updatetime(self, time):
+		self.last_step_time = time
+
+	def step_counter(self, data, current_time):
+		if self.lastmag <= self.threshold and data > self.threshold and current_time - self.last_step_time > self.step_interval:
+			self.count += 1
+			self.updatetime(current_time)
+			log(current_time, self.count, '\n')
+		self.update(data)
+
+	def get_step_count(self):
+		return self.count
