@@ -55,7 +55,7 @@ while(getruntime() - start_time < MAX_TIME):
 		pre.update(mag_acceleration(sensor_raw_data))
 
 
-	# Pre-calibration stage preset the coefficients
+	# Pre-calibration stage preset the coefficients after data collection
 	elif count == PRE_LEARN_SAMPLES:
 		gravity_constant = pre.get_gravity()
 		moving_rate = pre.get_moving_rate(current_time)

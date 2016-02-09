@@ -3,7 +3,7 @@
   pre_calibration.r2py
 
 <Purpose>
-  This is a script for pre calibration stage for better step estimation
+  This is a script of pre calibration stage for better step estimation
   with different device. To get gravity constant, sampling rate and noise
   level from first 100 samples. 
 """
