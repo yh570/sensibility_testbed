@@ -137,17 +137,6 @@ while(getruntime() - starttime < MAX_TIME):
       std_mag = variance_mag**0.5
 
 
-      #-------------------------------------------------------Threshold pre calibration
-
-      if step_count > 0 and step_count < 6:
-        pre_sum_variance = pre_sum_variance + (filtered_magNoG-average_mag)**2
-
-      elif step_count == 6 and pre_flag == 0:
-        pre_std = pre_sum_variance / (count - 1 - pre_learned_sample)
-        #mag_threshold = pre_std ** 0.5 * 0.8
-        pre_flag = 1
-      
-
       #-------------------------------------------------------Walking step detection
 
       if (count > 0) and (current_time - last_step_time > STEP_INTERVAL):
