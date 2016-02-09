@@ -1,0 +1,32 @@
+
+class moving_average_filter:
+	def __init__(self, moving_average_sample, current_time):
+		self.mag_list = []
+		self.sample = moving_average_sample
+		self.last_time = current_time
+
+	def update(self, current_time):
+		self.last_time = current_time
+
+	def filter_mag(self, data, current_time):
+		if current_time - self.last_time > 0.125:
+			self.mag_list = []
+		length = len(self.mag_list)
+		filtered_magNoG = 0.0
+		if length < self.sample:
+			self.mag_list.append(data)
+			length += 1
+			for i in range(0,length):
+				filtered_magNoG = filtered_magNoG + self.mag_list[i]
+				filtered_magNoG = filtered_magNoG/length
+
+		elif length == self.sample:
+			for i in range(0, length-1):
+				self.mag_list[i] = self.mag_list[i+1]
+				filtered_magNoG = filtered_magNoG + self.mag_list[i]
+				self.mag_list[length-1] = data
+				filtered_magNoG = filtered_magNoG + data
+				filtered_magNoG = filtered_magNoG/length
+		self.update(current_time)
+		
+		return filtered_magNoG
