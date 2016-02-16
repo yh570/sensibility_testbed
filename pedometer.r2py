@@ -67,6 +67,8 @@ def step_counter():
 			# step detection
 			step._step_counter(filtered_magNoG, current_time)
 
+
+			# write to string
 			if stepcount != step._get_step_count():
 				stepcount += 1
 				stepString += str(current_time) + ',' + str(stepcount) + '\n' 
@@ -84,6 +86,8 @@ def step_counter():
 	# Stop sensing while times over
 	stop_sensing()
 
+
+	# write to file
 	myfilelist = listfiles()
 
 	write_file("peaksearch", peakString, myfilelist)

@@ -38,7 +38,8 @@ class step_peak:
 		self.lasttime= time
 
 
-	# crossing noise level and actual step interval > minimum step interval
+
+	# a moving window to capture the peak
 	def _step_counter(self, data, current_time): 
 		self._update(data, current_time)
 		if current_time - self.lasttime >= self.step_interval * self.flag:
