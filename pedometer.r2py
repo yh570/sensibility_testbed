@@ -20,11 +20,11 @@ dy_import_module_symbols('pre_calibration.r2py')
 dy_import_module_symbols('moving_average.r2py')
 dy_import_module_symbols('step_detection.r2py')
 dy_import_module_symbols('steplib.r2py')
-
+dy_import_module_symbols('step_peak.r2py')
 
 # Initilization for pre-calibration and constants
 PRE_LEARN_SAMPLE_NUMBER = 100
-MAX_TIME = 60		                      # Max program running time in seconds
+MAX_TIME = 120		                      # Max program running time in seconds
 MIN_STEP_INTERVAL = 0.25                  # Minimum time difference between each step in senconds
 lock = createlock()
 
@@ -35,11 +35,22 @@ log("Welcome to pedometer!\nSystem pre calibration, please wait a while\n")
 start_time = getruntime()
 
 
+def write_file(filename, string, myfilelist):
+	if filename in myfilelist:
+		removefile(filename)
+	myfileobject = openfile(filename, True)
+	myfileobject.writeat(string, 0)
+	myfileobject.close()
 
 
 
 def step_counter():	
 	# Startup step counter
+	resultstring = "Time, mag\n"
+	stepString = "Time, step_count\n"
+	peakString = "Time, mag\n"
+	peakcount = 0
+	stepcount = 0
 	while(getruntime() - start_time < MAX_TIME):
 		try:
 			current_time = getruntime()
@@ -51,15 +62,35 @@ def step_counter():
 			# moving average filter
 			filtered_magNoG = MAfilter.filter_mag(sensor_data_noG, current_time)
 
+			resultstring += str(current_time) + ',' + str(filtered_magNoG) + '\n'
+
 			# step detection
 			step._step_counter(filtered_magNoG, current_time)
+
+			if stepcount != step._get_step_count():
+				stepcount += 1
+				stepString += str(current_time) + ',' + str(stepcount) + '\n' 
+
+
+			step_p._step_counter(filtered_magNoG, current_time)
+			if peakcount != step_p._get_count():
+				peakcount += 1
+				peakString += str(step_p._get_maxtime()) + ',' + str(step_p._get_peak()) + '\n' 
+
 		except Exception as e:
 		    log(str(e), '\n')
 		    sleep(0.005)
 	
 	# Stop sensing while times over
 	stop_sensing()
+
+	myfilelist = listfiles()
+
+	write_file("peaksearch", peakString, myfilelist)
+	write_file("stepcount", stepString, myfilelist)
+	write_file("rawmagfiltered", resultstring, myfilelist)
 	
+	log("Step counter finished, thank you for your help!\n")
 
 
 
@@ -93,8 +124,9 @@ while(getruntime() - start_time < MAX_TIME):
 			threshold = pre._get_threshold()
 
 			# Initialize moving average filter and step detection
-			MAfilter = moving_average_filter(moving_rate, current_time)
+			MAfilter = moving_average_filter(moving_rate, current_time, 0.125)
 			step = step_detection(threshold, current_time, MIN_STEP_INTERVAL)
+			step_p = step_peak(threshold, current_time, MIN_STEP_INTERVAL * 2)
 			log_coefficient(gravity_constant, moving_rate, threshold)
 			break
 	except Exception as e:
@@ -102,9 +134,6 @@ while(getruntime() - start_time < MAX_TIME):
 	    stop_sensing()
     
 createthread(step_counter)
-
-
-
 
 
 # -*- mode: python;-*-

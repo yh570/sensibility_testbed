@@ -1,0 +1,77 @@
+"""
+<Program Name>
+  step_peak.r2py
+
+<Purpose>
+  This is a script for walking step counter function by peak search. Analysis of the data 
+  from filtered non gravity acceleration to detect the walking / running steps 
+  by using peak searching method. Introducing an preset walking / running interval
+  to accurate the detection
+"""
+
+
+
+
+
+class step_peak:
+	def __init__(self, threshold, time, step_interval):
+		self.maglist = []
+		self.timelist = []
+		self.maxMag = threshold
+		self.maxTime = time
+		self.threshold = threshold
+		self.count = 0
+		self.lasttime = time
+		self.step_interval = step_interval
+		self.lastMax = 0.0
+		self.lastMTime = 0.0
+		self.flag = 1
+
+
+	def _update(self, data, time):
+		self.maglist.append(data)
+		self.timelist.append(time)
+
+		
+
+	def _updatetime(self, time):
+		self.lasttime= time
+
+
+	# crossing noise level and actual step interval > minimum step interval
+	def _step_counter(self, data, current_time): 
+		self._update(data, current_time)
+		if current_time - self.lasttime >= self.step_interval * self.flag:
+			length = len(self.maglist)
+			for i in range(1, length-1):
+				if self.maglist[i-1] <= self.maglist[i] and self.maglist[i] > self.maglist[i+1] and self.maglist[i] > self.maxMag:
+					self.maxMag = self.maglist[i]
+					self.maxTime = self.timelist[i]
+					self.flag = 0
+			if self.flag == 0:
+				self.count += 1
+				self.lastMax = self.maxMag
+				self.lastMTime = self.maxTime
+				self._updatetime(current_time)
+				self.maxMag = self.threshold
+				self.flag = 1
+				self.maglist = []
+				self.timelist = []
+				log("-----Time:", self.maxTime, "Step peak count:", self.count, '\n')
+			else:
+				self.flag += 1
+		
+
+		
+
+	def _get_peak(self):
+		return self.lastMax
+
+	def _get_count(self):
+		return self.count
+
+	def _get_maxtime(self):
+		return self.lastMTime
+
+
+# -*- mode: python;-*-

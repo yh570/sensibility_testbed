@@ -13,10 +13,11 @@
 
 
 class moving_average_filter:
-	def __init__(self, moving_average_sample, current_time):
+	def __init__(self, moving_average_sample, current_time, threshold):
 		self.mag_list = []
 		self.sample = moving_average_sample
 		self.last_time = current_time
+		self.threshold = threshold
 
 
 	def _update(self, current_time):
@@ -27,7 +28,7 @@ class moving_average_filter:
 	def filter_mag(self, data, current_time):
 		# avoid device lag
 		# different sampling time interval will reduce the filter's accuracy
-		if current_time - self.last_time > 0.125:
+		if current_time - self.last_time > self.threshold:
 			self.mag_list = []
 		length = len(self.mag_list)
 		filtered_magNoG = 0.0

@@ -7,8 +7,6 @@
 """
 
 
-
-
 # get acceleration data from sensor
 def mag_acceleration(data):
 	return (data['xforce'] ** 2 + data['yforce'] ** 2 + data['zforce'] ** 2) ** 0.5
@@ -21,6 +19,8 @@ def log_coefficient(gravity_constant, moving_rate, threshold):
 			"\nMoving Average Filter Window Sampling Number:", moving_rate, 
 			"\nThreshold:", threshold, '\n')
 	log("Please walk around\n")
+
+
 
 
 # -*- mode: python;-*-
