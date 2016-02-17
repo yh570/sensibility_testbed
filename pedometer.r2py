@@ -18,13 +18,14 @@ sensorlib = dy_import_module("sensorlib.r2py")
 dy_import_module_symbols('getsensor.r2py')
 dy_import_module_symbols('pre_calibration.r2py')
 dy_import_module_symbols('moving_average.r2py')
+dy_import_module_symbols('lpf.r2py')
 dy_import_module_symbols('step_detection.r2py')
 dy_import_module_symbols('steplib.r2py')
 dy_import_module_symbols('step_peak.r2py')
 
 # Initilization for pre-calibration and constants
 PRE_LEARN_SAMPLE_NUMBER = 100
-MAX_TIME = 120		                      # Max program running time in seconds
+MAX_TIME = 60		                      # Max program running time in seconds
 MIN_STEP_INTERVAL = 0.25                  # Minimum time difference between each step in senconds
 lock = createlock()
 
@@ -46,9 +47,11 @@ def write_file(filename, string, myfilelist):
 
 def step_counter():	
 	# Startup step counter
-	resultstring = "Time, mag\n"
-	stepString = "Time, step_count\n"
-	peakString = "Time, mag\n"
+	rawString = "Time, mag\n"
+	resultString = "Time, mag\n"
+	#stepString = "Time, step_count\n"
+	#peakString = "Time, mag\n"
+	averageString = "Time, mag\n"
 	peakcount = 0
 	stepcount = 0
 	while(getruntime() - start_time < MAX_TIME):
@@ -59,10 +62,16 @@ def step_counter():
 			# Non-gravity acceleration
 			sensor_data_noG = mag_acceleration(sensor_raw_data) - gravity_constant
 
-			# moving average filter
-			filtered_magNoG = MAfilter.filter_mag(sensor_data_noG, current_time)
+			rawString += str(current_time) + ',' + str(sensor_data_noG) + '\n'
 
-			resultstring += str(current_time) + ',' + str(filtered_magNoG) + '\n'
+			# moving average filter
+			moving_magNoG = MAfilter.filter_mag(sensor_data_noG, current_time)
+			averageString += str(current_time) + ',' + str(moving_magNoG) + '\n'
+
+			# linear phase low pass filter
+			filtered_magNoG = lpfoutput.filter_mag(sensor_data_noG, current_time)
+
+			resultString += str(current_time) + ',' + str(filtered_magNoG) + '\n'
 
 			# step detection
 			step._step_counter(filtered_magNoG, current_time)
@@ -71,13 +80,13 @@ def step_counter():
 			# write to string
 			if stepcount != step._get_step_count():
 				stepcount += 1
-				stepString += str(current_time) + ',' + str(stepcount) + '\n' 
+				#stepString += str(current_time) + ',' + str(stepcount) + '\n' 
 
 
 			step_p._step_counter(filtered_magNoG, current_time)
 			if peakcount != step_p._get_count():
 				peakcount += 1
-				peakString += str(step_p._get_maxtime()) + ',' + str(step_p._get_peak()) + '\n' 
+				#peakString += str(step_p._get_maxtime()) + ',' + str(step_p._get_peak()) + '\n' 
 
 		except Exception as e:
 		    log(str(e), '\n')
@@ -90,9 +99,11 @@ def step_counter():
 	# write to file
 	myfilelist = listfiles()
 
-	write_file("peaksearch", peakString, myfilelist)
-	write_file("stepcount", stepString, myfilelist)
-	write_file("rawmagfiltered", resultstring, myfilelist)
+	write_file("raw", rawString, myfilelist)
+	#write_file("peaksearch", peakString, myfilelist)
+	#write_file("stepcount", stepString, myfilelist)
+	write_file("filtered", resultString, myfilelist)
+	write_file("average", averageString, myfilelist)
 	
 	log("Step counter finished, thank you for your help!\n")
 
@@ -129,6 +140,7 @@ while(getruntime() - start_time < MAX_TIME):
 
 			# Initialize moving average filter and step detection
 			MAfilter = moving_average_filter(moving_rate, current_time, 0.125)
+			lpfoutput = lpf(current_time, 0.25)
 			step = step_detection(threshold, current_time, MIN_STEP_INTERVAL)
 			step_p = step_peak(threshold, current_time, MIN_STEP_INTERVAL * 2)
 			log_coefficient(gravity_constant, moving_rate, threshold)
