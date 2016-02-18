@@ -1,6 +1,6 @@
 """
 <Program Name>
-  step_detection.r2py
+  step_zero_detection.r2py
 
 <Purpose>
   This is a script for walking step counter function. Analysis of the data 
@@ -13,7 +13,7 @@
 
 
 
-class step_detection:
+class StepZeroCrossing:
 	def __init__(self, threshold, time, step_interval):
 		self.lastmag = 0.0
 		self.threshold = threshold
@@ -22,24 +22,17 @@ class step_detection:
 		self.step_interval = step_interval
 
 
-	def _update(self, data):
-		self.lastmag = data
-
-	
-	def _updatetime(self, time):
-		self.last_step_time = time
-
 
 	# crossing noise level and actual step interval > minimum step interval
-	def _step_counter(self, data, current_time): 
+	def zero_counter(self, data, current_time): 
 		if self.lastmag <= self.threshold and data > self.threshold and current_time - self.last_step_time > self.step_interval:
 			self.count += 1
-			self._updatetime(current_time)
+			self.last_step_time = current_time
 			log("Time:", current_time, "Step count:", self.count, '\n')
-		self._update(data)
+		self.lastmag = data
 		
 
-	def _get_step_count(self):
+	def get_zero_count(self):
 		return self.count
 
 

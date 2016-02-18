@@ -13,7 +13,7 @@
 
 
 
-class step_peak:
+class StepPeakSearch:
 	def __init__(self, threshold, time, step_interval):
 		self.maglist = []
 		self.timelist = []
@@ -28,20 +28,11 @@ class step_peak:
 		self.flag = 1
 
 
-	def _update(self, data, time):
-		self.maglist.append(data)
-		self.timelist.append(time)
-
-		
-
-	def _updatetime(self, time):
-		self.lasttime= time
-
-
 
 	# a moving window to capture the peak
-	def _step_counter(self, data, current_time): 
-		self._update(data, current_time)
+	def peak_search(self, data, current_time): 
+		self.maglist.append(data)
+		self.timelist.append(current_time)
 		if current_time - self.lasttime >= self.step_interval * self.flag:
 			length = len(self.maglist)
 			for i in range(1, length-1):
@@ -53,7 +44,7 @@ class step_peak:
 				self.count += 1
 				self.lastMax = self.maxMag
 				self.lastMTime = self.maxTime
-				self._updatetime(current_time)
+				self.lasttime= current_time
 				self.maxMag = self.threshold
 				self.flag = 1
 				self.maglist = []
@@ -65,13 +56,13 @@ class step_peak:
 
 		
 
-	def _get_peak(self):
+	def get_peak(self):
 		return self.lastMax
 
-	def _get_count(self):
+	def get_peak_count(self):
 		return self.count
 
-	def _get_maxtime(self):
+	def get_peak_time(self):
 		return self.lastMTime
 
 

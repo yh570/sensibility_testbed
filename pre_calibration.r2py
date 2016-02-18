@@ -12,20 +12,20 @@
 
 
 
-class pre_calibration:
+class PreCalibration:
 	def __init__(self, current_time):
 		self.mag_list = []
 		self.start_time = current_time
 		self.average = 0.0
 
 
-	def _update(self, data):
+	def update(self, data):
 		self.mag_list.append(data)
 		
 
 
 	# gravity constant estimated by mean of acceleration
-	def _get_gravity(self):
+	def get_gravity(self):
 		sum_mag = 0
 		length = len(self.mag_list)
 		for i in range(0, length):
@@ -36,7 +36,7 @@ class pre_calibration:
 
 	# moving average filter windows size estimaed by sampling rate
 	# and minimum path interval
-	def _get_moving_rate(self, time):
+	def get_moving_rate(self, time):
 		moving_average_sample = int(0.125/((time - self.start_time)/len(self.mag_list)))
 		if moving_average_sample < 4:
 			moving_average_sample = 4
@@ -48,7 +48,7 @@ class pre_calibration:
 	# and standard deviation of noise. std used to avoid some unexpected 
 	# large value pulse which may cause unexpected threshold value
 	# estimated noise pk-pk = std * 6~8
-	def _get_threshold(self):
+	def get_threshold(self):
 		sum_variance = 0.0
 		max_noise = self.mag_list[0]
 		length = len(self.mag_list)

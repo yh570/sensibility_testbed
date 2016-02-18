@@ -1,6 +1,6 @@
 """
 <Program Name>
-  lpf.r2py
+  low_pass_filter.r2py
 
 <Purpose>
   This is a script for linear phase low pass filter to filter out 
@@ -18,7 +18,7 @@ b2 = -0.6414
 # y(k) = a0x(k) + a1x(k-1) + a2x(k-2) + b1y(k-1) + b2y(k-2)
 # cut off frequency = 10HZ
 
-class lpf:
+class LowPassFilter:
 	def __init__(self, current_time, threshold):
 		self.mag_list = []
 		self.output_list = []
@@ -27,12 +27,8 @@ class lpf:
 
 
 
-	def _update(self, current_time):
-		self.last_time = current_time
-
-
-	# moving average filter smooth the curve
-	def filter_mag(self, data, current_time):
+	# lowpassfilter filter smooth the curve
+	def low_pass_filter(self, data, current_time):
 		# avoid device lag
 		# different sampling time interval will reduce the filter's accuracy
 		if current_time - self.last_time > self.threshold:
@@ -54,7 +50,7 @@ class lpf:
 			self.output_list[0] = self.output_list[1]
 			self.output_list[1] = filtered_magNoG
 			
-		self._update(current_time)
+		self.last_time = current_time
 
 		return filtered_magNoG
 

@@ -18,138 +18,141 @@ sensorlib = dy_import_module("sensorlib.r2py")
 dy_import_module_symbols('getsensor.r2py')
 dy_import_module_symbols('pre_calibration.r2py')
 dy_import_module_symbols('moving_average.r2py')
-dy_import_module_symbols('lpf.r2py')
-dy_import_module_symbols('step_detection.r2py')
-dy_import_module_symbols('steplib.r2py')
+dy_import_module_symbols('low_pass_filter.r2py')
+dy_import_module_symbols('step_zero_detection.r2py')
 dy_import_module_symbols('step_peak.r2py')
 
 # Initilization for pre-calibration and constants
 PRE_LEARN_SAMPLE_NUMBER = 100
 MAX_TIME = 60		                      # Max program running time in seconds
 MIN_STEP_INTERVAL = 0.25                  # Minimum time difference between each step in senconds
-lock = createlock()
-
-count = 0
-
-start_sensing(2, 0)
-log("Welcome to pedometer!\nSystem pre calibration, please wait a while\n")
-start_time = getruntime()
-
-
-def write_file(filename, string, myfilelist):
-	if filename in myfilelist:
-		removefile(filename)
-	myfileobject = openfile(filename, True)
-	myfileobject.writeat(string, 0)
-	myfileobject.close()
 
 
 
-def step_counter():	
-	# Startup step counter
-	rawString = "Time, mag\n"
-	resultString = "Time, mag\n"
-	#stepString = "Time, step_count\n"
-	#peakString = "Time, mag\n"
-	averageString = "Time, mag\n"
-	peakcount = 0
-	stepcount = 0
-	while(getruntime() - start_time < MAX_TIME):
+
+# get acceleration data from sensor
+def mag_acceleration(data):
+	return (data['xforce'] ** 2 + data['yforce'] ** 2 + data['zforce'] ** 2) ** 0.5
+
+
+# log coefficient after pre-calibration stage
+def log_coefficient(gravity_constant, moving_rate, threshold):
+	log("Pre calibration done!\n")
+	log("Grvaity Constant:", gravity_constant, 
+			"\nMoving Average Filter Window Sampling Number:", moving_rate, 
+			"\nThreshold:", threshold, '\n')
+	log("Please walk around\n")
+
+
+
+
+
+def pre_learn():
+	# main
+	log("Welcome to pedometer!\nSystem pre calibration, please wait a while\n")
+	start_time = getruntime()
+	count = 0
+	
+	while(count < PRE_LEARN_SAMPLE_NUMBER):
 		try:
 			current_time = getruntime()
-			sensor_raw_data = get_sensors()	
+			sensor_raw_data = get_sensors()
 
-			# Non-gravity acceleration
-			sensor_data_noG = mag_acceleration(sensor_raw_data) - gravity_constant
+			# Before effecitve data collection, accelerometer return "None"
+			# Continue except effective data collection
+			if len(sensor_raw_data) == 0:
+				continue
+			count += 1
 
-			rawString += str(current_time) + ',' + str(sensor_data_noG) + '\n'
-
-			# moving average filter
-			moving_magNoG = MAfilter.filter_mag(sensor_data_noG, current_time)
-			averageString += str(current_time) + ',' + str(moving_magNoG) + '\n'
-
-			# linear phase low pass filter
-			filtered_magNoG = lpfoutput.filter_mag(sensor_data_noG, current_time)
-
-			resultString += str(current_time) + ',' + str(filtered_magNoG) + '\n'
-
-			# step detection
-			step._step_counter(filtered_magNoG, current_time)
-
-
-			# write to string
-			if stepcount != step._get_step_count():
-				stepcount += 1
-				#stepString += str(current_time) + ',' + str(stepcount) + '\n' 
-
-
-			step_p._step_counter(filtered_magNoG, current_time)
-			if peakcount != step_p._get_count():
-				peakcount += 1
-				#peakString += str(step_p._get_maxtime()) + ',' + str(step_p._get_peak()) + '\n' 
-
+			# Pre-calibration stage initilization and data collection
+			if count == 1:
+				pre = PreCalibration(current_time)	
+			pre.update(mag_acceleration(sensor_raw_data))
 		except Exception as e:
 		    log(str(e), '\n')
-		    sleep(0.005)
-	
-	# Stop sensing while times over
-	stop_sensing()
-
-
-	# write to file
-	myfilelist = listfiles()
-
-	write_file("raw", rawString, myfilelist)
-	#write_file("peaksearch", peakString, myfilelist)
-	#write_file("stepcount", stepString, myfilelist)
-	write_file("filtered", resultString, myfilelist)
-	write_file("average", averageString, myfilelist)
-	
-	log("Step counter finished, thank you for your help!\n")
+		    stop_sensing()
 
 
 
+	# Get estimated coefficient at the end of pre-calibration stage
+	gravity_constant = pre.get_gravity()
+	moving_rate = pre.get_moving_rate(current_time)
+	threshold = pre.get_threshold()
 
-
-# main
-while(getruntime() - start_time < MAX_TIME):
-	try:
-		current_time = getruntime()
-		sensor_raw_data = get_sensors()
-
-		# Before effecitve data collection, accelerometer return "None"
-		# Continue except effective data collection
-		if len(sensor_raw_data) == 0:
-			continue
-
-		count += 1
-
-		# Pre-calibration stage initilization and data collection
-		if count > 0 and count < PRE_LEARN_SAMPLE_NUMBER:
-			if count == 1:
-				pre = pre_calibration(current_time)	
-			pre._update(mag_acceleration(sensor_raw_data))
+	# Initialize moving average filter and step detection
+	MAF = MovingAverageFilter(moving_rate, current_time, 0.125)
+	LPF = LowPassFilter(current_time, 0.25)
+	step_z = StepZeroCrossing(threshold, current_time, MIN_STEP_INTERVAL)
+	step_p = StepPeakSearch(threshold, current_time, MIN_STEP_INTERVAL * 2)
+	log_coefficient(gravity_constant, moving_rate, threshold)
+		
+	return {'gravity_constant':gravity_constant, 'MAF':MAF, 'LPF':LPF, 'step_z':step_z, 'step_p':step_p}
 
 
 
-		# Get estimated coefficient at the end of pre-calibration stage
-		elif count == PRE_LEARN_SAMPLE_NUMBER:
-			gravity_constant = pre._get_gravity()
-			moving_rate = pre._get_moving_rate(current_time)
-			threshold = pre._get_threshold()
 
-			# Initialize moving average filter and step detection
-			MAfilter = moving_average_filter(moving_rate, current_time, 0.125)
-			lpfoutput = lpf(current_time, 0.25)
-			step = step_detection(threshold, current_time, MIN_STEP_INTERVAL)
-			step_p = step_peak(threshold, current_time, MIN_STEP_INTERVAL * 2)
-			log_coefficient(gravity_constant, moving_rate, threshold)
-			break
-	except Exception as e:
-	    log(str(e), '\n')
-	    stop_sensing()
-    
-createthread(step_counter)
+class Pedometer:
+	def __init__(self, coefficient):
+		self.gravity_constant = coefficient['gravity_constant']
+		self.MAF = coefficient['MAF']
+		self.LPF = coefficient['LPF']
+		self.step_z = coefficient['step_z']
+		self.step_p = coefficient['step_p']
+		self.activate = False
+
+
+	def _step_counter(self):	
+		# Startup step counter
+		def func():
+			while(self.activate):
+				try:
+					current_time = getruntime()
+					sensor_raw_data = get_sensors()	
+					# Non-gravity acceleration
+					sensor_data_noG = mag_acceleration(sensor_raw_data) - self.gravity_constant
+
+
+					# moving average filter
+					mag_MAF = self.MAF.moving_average_filter(sensor_data_noG, current_time)
+
+					# linear phase low pass filter
+					mag_LPF = self.LPF.low_pass_filter(sensor_data_noG, current_time)
+
+
+					# step detection
+					self.step_z.zero_counter(mag_LPF, current_time)
+					self.step_p.peak_search(mag_LPF, current_time)
+
+
+
+				except Exception as e:
+				    log(str(e), '\n')
+				    sleep(0.005)
+			
+			log("Step counter finished, thank you for your help!\n")
+		return(func)
+
+
+	def start(self):
+		self.activate = True
+		createthread(self._step_counter())
+
+	def stop(self):
+		self.activate = False
+
+
+def start_pedometer():
+	step = Pedometer(pre_learn())
+	step.start()
+	return step
+
+def stop_pedometer(step):
+	step.stop()
+	sleep(0.1)
+
+
+
+
 
 
 # -*- mode: python;-*-

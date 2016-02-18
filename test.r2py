@@ -1,0 +1,18 @@
+dy_import_module_symbols('pedometer.r2py')
+
+
+
+start_sensing(2, 0)
+
+start_time = getruntime()
+
+step = start_pedometer()
+
+while True:
+	if (getruntime() - start_time > 20):
+		log("=====\n")
+		
+		stop_pedometer(step)
+		log("-------------\n")
+		stop_sensing()
+		break
