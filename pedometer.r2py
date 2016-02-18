@@ -14,7 +14,6 @@
 
 
 
-sensorlib = dy_import_module("sensorlib.r2py")
 dy_import_module_symbols('getsensor.r2py')
 dy_import_module_symbols('pre_calibration.r2py')
 dy_import_module_symbols('moving_average.r2py')
@@ -22,9 +21,12 @@ dy_import_module_symbols('low_pass_filter.r2py')
 dy_import_module_symbols('step_zero_detection.r2py')
 dy_import_module_symbols('step_peak.r2py')
 
-# Initilization for pre-calibration and constants
+
+
+
+
+# constants for pre-calibratino stage
 PRE_LEARN_SAMPLE_NUMBER = 100
-MAX_TIME = 60		                      # Max program running time in seconds
 MIN_STEP_INTERVAL = 0.25                  # Minimum time difference between each step in senconds
 
 
@@ -35,6 +37,10 @@ def mag_acceleration(data):
 	return (data['xforce'] ** 2 + data['yforce'] ** 2 + data['zforce'] ** 2) ** 0.5
 
 
+
+
+
+
 # log coefficient after pre-calibration stage
 def log_coefficient(gravity_constant, moving_rate, threshold):
 	log("Pre calibration done!\n")
@@ -42,6 +48,33 @@ def log_coefficient(gravity_constant, moving_rate, threshold):
 			"\nMoving Average Filter Window Sampling Number:", moving_rate, 
 			"\nThreshold:", threshold, '\n')
 	log("Please walk around\n")
+
+
+
+
+
+# start pedometer module
+def start_pedometer():
+	step = Pedometer(pre_learn())
+	step.start()
+	return step
+
+
+
+
+
+# stop pedometer module
+def stop_pedometer(step):
+	step.stop()
+	sleep(0.1)
+
+
+
+
+
+# get pedometer data
+def get_pedometer_data(step):
+	return step.get_data()
 
 
 
@@ -87,6 +120,9 @@ def pre_learn():
 	log_coefficient(gravity_constant, moving_rate, threshold)
 		
 	return {'gravity_constant':gravity_constant, 'MAF':MAF, 'LPF':LPF, 'step_z':step_z, 'step_p':step_p}
+
+
+
 
 
 
@@ -141,14 +177,12 @@ class Pedometer:
 		self.activate = False
 
 
-def start_pedometer():
-	step = Pedometer(pre_learn())
-	step.start()
-	return step
+	def get_data(self):
+		peak_count = self.step_p.get_peak_count()
+		zero_count = self.step_z.get_zero_count()
+		return {'zero': zero_count, 'peak': peak_count}
 
-def stop_pedometer(step):
-	step.stop()
-	sleep(0.1)
+
 
 
 

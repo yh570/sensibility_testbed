@@ -1,3 +1,5 @@
+sensorlib = dy_import_module("sensorlib.r2py")
+dy_import_module_symbols('getsensor.r2py')
 dy_import_module_symbols('pedometer.r2py')
 
 
@@ -16,3 +18,4 @@ while True:
 		log("-------------\n")
 		stop_sensing()
 		break
+log(get_pedometer_data(step))
