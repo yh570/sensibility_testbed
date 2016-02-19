@@ -36,6 +36,7 @@ class LowPassFilter:
 			self.output_list = []
 		length = len(self.mag_list)
 
+
 		if length < 2:
 			self.mag_list.append(data)
 			self.output_list.append(data)
@@ -43,6 +44,7 @@ class LowPassFilter:
 			length += 1
 
 
+		# will change to queue later
 		elif length == 2:
 			filtered_magNoG = a0 * data + a1 * self.mag_list[1] + a2 * self.mag_list[0] + b1 * self.output_list[1] + b2 * self.output_list[0]
 			self.mag_list[0] = self.mag_list[1]

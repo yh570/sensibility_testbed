@@ -1,21 +1,25 @@
 sensorlib = dy_import_module("sensorlib.r2py")
-dy_import_module_symbols('getsensor.r2py')
+#dy_import_module_symbols('getsensor.r2py')
 dy_import_module_symbols('pedometer.r2py')
 
 
 
 start_sensing(2, 0)
-
 start_time = getruntime()
 
+# start pedometer
+# work as a thread
 step = start_pedometer()
 
+
 while True:
-	if (getruntime() - start_time > 20):
+	if (getruntime() - start_time > 40):
 		log("=====\n")
 		
 		stop_pedometer(step)
 		log("-------------\n")
 		stop_sensing()
 		break
+
+
 log(get_pedometer_data(step))

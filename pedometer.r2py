@@ -80,6 +80,7 @@ def get_pedometer_data(step):
 
 
 
+# pre-calibration stage, initialize coefficient of filters and threshold of noise level 
 def pre_learn():
 	# main
 	log("Welcome to pedometer!\nSystem pre calibration, please wait a while\n")
@@ -127,6 +128,9 @@ def pre_learn():
 
 
 
+
+
+# Peodmeter class, includes filtering raw data and step estimation
 class Pedometer:
 	def __init__(self, coefficient):
 		self.gravity_constant = coefficient['gravity_constant']
@@ -135,6 +139,9 @@ class Pedometer:
 		self.step_z = coefficient['step_z']
 		self.step_p = coefficient['step_p']
 		self.activate = False
+
+
+
 
 
 	def _step_counter(self):	
@@ -169,9 +176,13 @@ class Pedometer:
 		return(func)
 
 
+
+
+
 	def start(self):
 		self.activate = True
 		createthread(self._step_counter())
+
 
 	def stop(self):
 		self.activate = False

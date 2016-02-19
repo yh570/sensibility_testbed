@@ -23,6 +23,7 @@ class StepZeroCrossing:
 
 
 
+
 	# crossing noise level and actual step interval > minimum step interval
 	def zero_counter(self, data, current_time): 
 		if self.lastmag <= self.threshold and data > self.threshold and current_time - self.last_step_time > self.step_interval:
@@ -31,6 +32,8 @@ class StepZeroCrossing:
 			log("Time:", current_time, "Step count:", self.count, '\n')
 		self.lastmag = data
 		
+
+
 
 	def get_zero_count(self):
 		return self.count

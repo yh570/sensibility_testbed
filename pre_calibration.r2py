@@ -19,9 +19,13 @@ class PreCalibration:
 		self.average = 0.0
 
 
+
+
 	def update(self, data):
 		self.mag_list.append(data)
 		
+
+
 
 
 	# gravity constant estimated by mean of acceleration
@@ -32,6 +36,9 @@ class PreCalibration:
 			sum_mag += self.mag_list[i]
 		self.average = sum_mag/length
 		return self.average
+
+
+
 
 
 	# moving average filter windows size estimaed by sampling rate

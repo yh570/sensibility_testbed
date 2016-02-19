@@ -30,6 +30,7 @@ class StepPeakSearch:
 
 
 	# a moving window to capture the peak
+	# will change to queue later
 	def peak_search(self, data, current_time): 
 		self.maglist.append(data)
 		self.timelist.append(current_time)
@@ -59,8 +60,10 @@ class StepPeakSearch:
 	def get_peak(self):
 		return self.lastMax
 
+
 	def get_peak_count(self):
 		return self.count
+
 
 	def get_peak_time(self):
 		return self.lastMTime
