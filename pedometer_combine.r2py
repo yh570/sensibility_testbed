@@ -53,14 +53,10 @@ def log_coefficient(gravity_constant, moving_rate, threshold):
 
 
 # start pedometer module
-def start_pedometer():
-  log("++++++++++++++++++++++++\n")
-  pre = PreCalibration(100)
-  log("++++++++++++++++++++++++\n")
+def start_pedometer(number = 100):
+  pre = PreCalibration(number)
   step = Pedometer(pre)
-  log("++++++++++++++++++++++++\n")
   step.start()
-  log("++++++++++++++++++++++++\n")
   return step
 
 
@@ -100,8 +96,8 @@ class Pedometer:
     self.threshold = precalibration.get_threshold()
 
     # Initialize moving average filter and step detection
-    self.maf = MovingAverageFilter(moving_rate, precalibration.time, 0.125)
-    self.lpf = LowPassFilter(time, 0.25)
+    self.maf = MovingAverageFilter(self.moving_rate, precalibration.time, 0.125)
+    self.lpf = LowPassFilter(precalibration.time, 0.25)
 
     self.steptime = precalibration.time
     #log_coefficient(gravity_constant, moving_rate, threshold)
@@ -121,22 +117,23 @@ class Pedometer:
 
     
 
-  def detect_step(self, raw_acc, time):	
+  def detect_step(self, raw_acc, time, method = 0):	
 
     # Non-gravity acceleration
     raw_mag = mag_acceleration(raw_acc) - self.gravity_constant
 
     # moving average filter
-    maf_mag = self.MAF.moving_average_filter(raw_mag, time)
+    maf_mag = self.maf.moving_average_filter(raw_mag, time)
 
     # linear phase low pass filter
-    lpf_mag = self.LPF.low_pass_filter(raw_mag, time)
+    lpf_mag = self.lpf.low_pass_filter(raw_mag, time)
 
     
     # step detection
-    return self._detect_peak(lpf_mag, time)
-    
-    # return self._detect_zero(lpf_mag, time) or self._detect_peak(lpf_mag, time)
+    if method == 1:
+      return self._detect_peak(lpf_mag, time)
+    else:
+      return self._detect_zero(lpf_mag, time) # or self._detect_peak(lpf_mag, time)
 
  
 

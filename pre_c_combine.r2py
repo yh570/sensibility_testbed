@@ -10,7 +10,7 @@
 
 dy_import_module_symbols("matrix.r2py")
 dy_import_module_symbols("stat_stream.r2py")
-
+dy_import_module_symbols('getsensor.r2py')
 
 
 class PreCalibration:
@@ -23,6 +23,8 @@ class PreCalibration:
     self.gyro_stats = StatStream()
     self.magnet_stats = StatStream()
     self.acc_stats = StatStream()
+
+    self.calibrate()
         
 
   # pre-calibration stage, initialize coefficient of filters and threshold of noise level 
@@ -30,26 +32,28 @@ class PreCalibration:
     #log("Welcome to pedometer!\nSystem pre calibration, please wait a while\n")
 
     while get_sensors() is None:
+      log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
       sleep(0.1)
 
     self.start_time = getruntime()
 
     count = 0
+
     while count < self.samplenum:
       self.time = getruntime()
-
       try:
-	raw_data = get_sensors()
+		raw_data = get_sensors()
       except Exception as e:
         sleep(0.1)
         continue
 
-     
+
+      log(raw_data, '\n')
       mag = matrix_row_magnitude([raw_data['xforce'], raw_data['yforce'], raw_data['zforce']])
       self.mag_list.append(mag)
       self.acc_stats.update(mag)
-      self.gyro_stats.update(matrix_row_magnitude([raw_data['roll'], raw_data['pitch'], raw_data['yaw']]))
-      self.magnet_stats.update(matrix_row_magnitude([raw_data['xmag'], raw_data['ymag'], raw_data['zmag']]))
+      #self.gyro_stats.update(matrix_row_magnitude([raw_data['roll'], raw_data['pitch'], raw_data['yaw']]))
+      #self.magnet_stats.update(matrix_row_magnitude([raw_data['xmag'], raw_data['ymag'], raw_data['zmag']]))
       count += 1 
 
 
@@ -57,11 +61,12 @@ class PreCalibration:
 
     # gravity constant estimated by mean of acceleration
   def get_gravity(self):
-	sum_mag = 0
+	sum_mag = 0.0
 	length = len(self.mag_list)
 	for i in range(0, length):
 	  sum_mag += self.mag_list[i]
 	self.average = sum_mag/length
+	log("\nGravity constant:", self.average, '\n')
 	return self.average
 
 
@@ -74,6 +79,7 @@ class PreCalibration:
 	moving_average_sample = int(0.125/((self.time - self.start_time)/len(self.mag_list)))
 	if moving_average_sample < 4:
 	  moving_average_sample = 4
+	log("\nSamplingrate:", moving_average_sample, '\n')
 	return moving_average_sample 
 
 
@@ -97,6 +103,7 @@ class PreCalibration:
 	  threshold = (max_noise) * 2
 	else:
 	  threshold = std_mag * 16
+	log("\nThreshold:", threshold, '\n')
 	return threshold
 
 
